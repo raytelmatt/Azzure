@@ -69,7 +69,7 @@ function displayEntityDetails(entity) {
                 ${entity.ein ? `<p><strong>EIN:</strong> ${escapeHtml(entity.ein)}</p>` : ''}
                 ${entity.state_of_incorporation ? `<p><strong>State:</strong> ${escapeHtml(entity.state_of_incorporation)}</p>` : ''}
                 ${entity.date_of_incorporation ? `<p><strong>Incorporated:</strong> ${escapeHtml(entity.date_of_incorporation)}</p>` : ''}
-                ${entity.status ? `<p><strong>Status:</strong> <span style="padding: 4px 12px; border-radius: 4px; background: ${entity.status === 'active' ? '#d4edda' : entity.status === 'inactive' ? '#fff3cd' : '#f8d7da'}; color: ${entity.status === 'active' ? '#155724' : entity.status === 'inactive' ? '#856404' : '#721c24'};">${escapeHtml(entity.status).toUpperCase()}</span></p>` : ''}
+                ${entity.status ? `<p><strong>Status:</strong> <span style="padding: 4px 12px; border-radius: 6px; background: ${entity.status === 'active' ? 'linear-gradient(135deg, #4a7c5f 0%, #3a6c4f 100%)' : entity.status === 'inactive' ? 'linear-gradient(135deg, #8b6f47 0%, #6b5537 100%)' : 'linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%)'}; color: ${entity.status === 'active' ? '#e0f9e8' : entity.status === 'inactive' ? '#f9f3e9' : '#fce4e4'}; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">${escapeHtml(entity.status).toUpperCase()}</span></p>` : ''}
             </div>
             ${entity.registered_address ? `<p style="margin-top: 5px;"><strong>Address:</strong> ${escapeHtml(entity.registered_address)}</p>` : ''}
             ${entity.registered_phone ? `<p style="margin-top: 5px;"><strong>Phone:</strong> ${escapeHtml(entity.registered_phone)}</p>` : ''}
@@ -90,8 +90,8 @@ function displayEntityDetails(entity) {
                         ${acc.notes ? `<p><em>${escapeHtml(acc.notes)}</em></p>` : ''}
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        <button onclick="editAccount(${acc.id})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Edit</button>
-                        <button onclick="deleteAccount(${acc.id})" style="padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                        <button onclick="editAccount(${acc.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #5a6c8f 0%, #4a5c7f 100%); color: #e0e4e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Edit</button>
+                        <button onclick="deleteAccount(${acc.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%); color: #fce4e4; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
                     </div>
                 </div>
             `).join('') : '<p class="empty-state">No accounts yet</p>'}
@@ -113,8 +113,8 @@ function displayEntityDetails(entity) {
                         <p>${escapeHtml(task.description || 'No description')}</p>
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        <button onclick="editTask(${task.id})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Edit</button>
-                        <button onclick="deleteTask(${task.id})" style="padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                        <button onclick="editTask(${task.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #5a6c8f 0%, #4a5c7f 100%); color: #e0e4e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Edit</button>
+                        <button onclick="deleteTask(${task.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%); color: #fce4e4; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
                     </div>
                 </div>
             `).join('') : '<p class="empty-state">No tasks yet</p>'}
@@ -133,9 +133,9 @@ function displayEntityDetails(entity) {
                         ${doc.uploaded_at ? `<p><strong>Uploaded:</strong> ${new Date(doc.uploaded_at).toLocaleDateString()}</p>` : ''}
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        ${doc.file_path ? `<button onclick="viewDocument(${doc.id}, '${doc.title}')" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">View</button>` : ''}
-                        ${doc.file_path ? `<button onclick="downloadDocument(${doc.id})" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Download</button>` : ''}
-                        <button onclick="deleteDocument(${doc.id})" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                        ${doc.file_path ? `<button onclick="viewDocument(${doc.id}, '${doc.title}')" style="padding: 8px 15px; background: linear-gradient(135deg, #5a6c8f 0%, #4a5c7f 100%); color: #e0e4e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">View</button>` : ''}
+                        ${doc.file_path ? `<button onclick="downloadDocument(${doc.id})" style="padding: 8px 15px; background: linear-gradient(135deg, #4a7c5f 0%, #3a6c4f 100%); color: #e0f9e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Download</button>` : ''}
+                        <button onclick="deleteDocument(${doc.id})" style="padding: 8px 15px; background: linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%); color: #fce4e4; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
                     </div>
                 </div>
             `).join('') : '<p class="empty-state">No documents yet</p>'}
