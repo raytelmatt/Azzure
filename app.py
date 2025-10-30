@@ -6,8 +6,6 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 import uuid
-from cryptography.fernet import Fernet
-import base64
 import json
 
 app = Flask(__name__, static_folder='static', static_url_path='')
@@ -36,29 +34,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Password encryption setup
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
-if not ENCRYPTION_KEY:
-    # Generate and print key if not set (for local dev)
-    ENCRYPTION_KEY = Fernet.generate_key()
-    print(f'WARNING: Using generated encryption key. Set ENCRYPTION_KEY environment variable in production: {ENCRYPTION_KEY.decode()}')
-else:
-    if isinstance(ENCRYPTION_KEY, str):
-        ENCRYPTION_KEY = ENCRYPTION_KEY.encode()
-cipher = Fernet(ENCRYPTION_KEY)
-
-def encrypt_password(password):
-    if not password:
-        return None
-    return cipher.encrypt(password.encode()).decode()
-
-def decrypt_password(encrypted):
-    if not encrypted:
-        return None
-    try:
-        return cipher.decrypt(encrypted.encode()).decode()
-    except Exception:
-        return None
 
 
 # Models
@@ -115,7 +90,7 @@ class Account(db.Model):
             'balance': self.balance,
             'account_type': self.account_type,
             'username': self.username,
-            'password': decrypt_password(self.password) if self.password else None,
+            'password': self.password,
             'account_url': self.account_url,
             'notes': self.notes,
             'created_at': self.created_at.isoformat() if self.created_at else None
@@ -254,7 +229,6 @@ def get_accounts(entity_id):
 def create_account(entity_id):
     Entity.query.get_or_404(entity_id)
     data = request.json
-    encrypted_password = encrypt_password(data.get('password')) if data.get('password') else None
     account = Account(
         entity_id=entity_id,
         account_name=data['account_name'],
@@ -262,7 +236,7 @@ def create_account(entity_id):
         balance=data.get('balance', 0.0),
         account_type=data.get('account_type'),
         username=data.get('username'),
-        password=encrypted_password,
+        password=data.get('password'),
         account_url=data.get('account_url'),
         notes=data.get('notes')
     )
@@ -287,7 +261,7 @@ def update_account(account_id):
     account.account_type = data.get('account_type', account.account_type)
     account.username = data.get('username', account.username)
     if data.get('password'):
-        account.password = encrypt_password(data['password'])
+        account.password = data['password']
     account.account_url = data.get('account_url', account.account_url)
     account.notes = data.get('notes', account.notes)
     db.session.commit()
