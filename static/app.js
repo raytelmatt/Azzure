@@ -236,50 +236,6 @@ async function handleEntitySubmit(event) {
     }
 }
 
-async function createEntity(event) {
-    event.preventDefault();
-    
-    const name = document.getElementById('entity-name').value;
-    const description = document.getElementById('entity-description').value;
-    const ein = document.getElementById('entity-ein').value;
-    const state = document.getElementById('entity-state').value;
-    const date = document.getElementById('entity-date').value;
-    const address = document.getElementById('entity-address').value;
-    const phone = document.getElementById('entity-phone').value;
-    const status = document.getElementById('entity-status').value;
-    
-    try {
-        const response = await fetch(`${API_URL}/entities`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                name, description, ein, state_of_incorporation: state, 
-                date_of_incorporation: date, registered_address: address, 
-                registered_phone: phone, status 
-            })
-        });
-        
-        if (response.ok) {
-            closeModal();
-            document.getElementById('entity-name').value = '';
-            document.getElementById('entity-description').value = '';
-            document.getElementById('entity-ein').value = '';
-            document.getElementById('entity-state').value = '';
-            document.getElementById('entity-date').value = '';
-            document.getElementById('entity-address').value = '';
-            document.getElementById('entity-phone').value = '';
-            loadEntities();
-        } else {
-            alert('Error creating entity');
-        }
-    } catch (error) {
-        console.error('Error creating entity:', error);
-        alert('Error creating entity');
-    }
-}
-
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
