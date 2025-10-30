@@ -1,0 +1,11 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "gunicorn app:app"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 100
+
+[[services]]
+mounts = ["data"]
+
