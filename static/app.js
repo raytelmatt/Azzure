@@ -1,6 +1,7 @@
 const API_URL = 'https://web-production-f68b3.up.railway.app/api';
 
 let selectedEntityId = null;
+let currentEntityId = null;
 
 // Load entities on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -62,17 +63,20 @@ function displayEntityDetails(entity) {
     container.style.display = 'block';
     
     container.innerHTML = `
-        <div class="entity-header">
-            <h2>${escapeHtml(entity.name)}</h2>
-            <p>${escapeHtml(entity.description || 'No description')}</p>
-            <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                ${entity.ein ? `<p><strong>EIN:</strong> ${escapeHtml(entity.ein)}</p>` : ''}
-                ${entity.state_of_incorporation ? `<p><strong>State:</strong> ${escapeHtml(entity.state_of_incorporation)}</p>` : ''}
-                ${entity.date_of_incorporation ? `<p><strong>Incorporated:</strong> ${escapeHtml(entity.date_of_incorporation)}</p>` : ''}
-                ${entity.status ? `<p><strong>Status:</strong> <span style="padding: 4px 12px; border-radius: 6px; background: ${entity.status === 'active' ? 'linear-gradient(135deg, #4a7c5f 0%, #3a6c4f 100%)' : entity.status === 'inactive' ? 'linear-gradient(135deg, #8b6f47 0%, #6b5537 100%)' : 'linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%)'}; color: ${entity.status === 'active' ? '#e0f9e8' : entity.status === 'inactive' ? '#f9f3e9' : '#fce4e4'}; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">${escapeHtml(entity.status).toUpperCase()}</span></p>` : ''}
+        <div class="entity-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+            <div style="flex: 1;">
+                <h2>${escapeHtml(entity.name)}</h2>
+                <p>${escapeHtml(entity.description || 'No description')}</p>
+                <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    ${entity.ein ? `<p><strong>EIN:</strong> ${escapeHtml(entity.ein)}</p>` : ''}
+                    ${entity.state_of_incorporation ? `<p><strong>State:</strong> ${escapeHtml(entity.state_of_incorporation)}</p>` : ''}
+                    ${entity.date_of_incorporation ? `<p><strong>Incorporated:</strong> ${escapeHtml(entity.date_of_incorporation)}</p>` : ''}
+                    ${entity.status ? `<p><strong>Status:</strong> <span style="padding: 4px 12px; border-radius: 6px; background: ${entity.status === 'active' ? 'linear-gradient(135deg, #2d7a5a 0%, #1d6a4a 100%)' : entity.status === 'inactive' ? 'linear-gradient(135deg, #5a6fa5 0%, #4a5f95 100%)' : 'linear-gradient(135deg, #9a4a4a 0%, #7a3a3a 100%)'}; color: ${entity.status === 'active' ? '#d0ffe8' : entity.status === 'inactive' ? '#e8f1ff' : '#ffe0e0'}; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">${escapeHtml(entity.status).toUpperCase()}</span></p>` : ''}
+                </div>
+                ${entity.registered_address ? `<p style="margin-top: 5px;"><strong>Address:</strong> ${escapeHtml(entity.registered_address)}</p>` : ''}
+                ${entity.registered_phone ? `<p style="margin-top: 5px;"><strong>Phone:</strong> ${escapeHtml(entity.registered_phone)}</p>` : ''}
             </div>
-            ${entity.registered_address ? `<p style="margin-top: 5px;"><strong>Address:</strong> ${escapeHtml(entity.registered_address)}</p>` : ''}
-            ${entity.registered_phone ? `<p style="margin-top: 5px;"><strong>Phone:</strong> ${escapeHtml(entity.registered_phone)}</p>` : ''}
+            <button onclick="editEntity(${entity.id})" style="padding: 10px 20px; background: linear-gradient(135deg, #2d4a7a 0%, #1d3a6a 100%); color: #e8f1ff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s; font-weight: 600;">Edit Entity</button>
         </div>
         
         <div class="section">
@@ -90,8 +94,8 @@ function displayEntityDetails(entity) {
                         ${acc.notes ? `<p><em>${escapeHtml(acc.notes)}</em></p>` : ''}
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        <button onclick="editAccount(${acc.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #5a6c8f 0%, #4a5c7f 100%); color: #e0e4e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Edit</button>
-                        <button onclick="deleteAccount(${acc.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%); color: #fce4e4; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
+                        <button onclick="editAccount(${acc.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #2d4a7a 0%, #1d3a6a 100%); color: #e8f1ff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Edit</button>
+                        <button onclick="deleteAccount(${acc.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #9a4a4a 0%, #7a3a3a 100%); color: #ffe0e0; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
                     </div>
                 </div>
             `).join('') : '<p class="empty-state">No accounts yet</p>'}
@@ -113,8 +117,8 @@ function displayEntityDetails(entity) {
                         <p>${escapeHtml(task.description || 'No description')}</p>
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        <button onclick="editTask(${task.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #5a6c8f 0%, #4a5c7f 100%); color: #e0e4e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Edit</button>
-                        <button onclick="deleteTask(${task.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%); color: #fce4e4; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
+                        <button onclick="editTask(${task.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #2d4a7a 0%, #1d3a6a 100%); color: #e8f1ff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Edit</button>
+                        <button onclick="deleteTask(${task.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #9a4a4a 0%, #7a3a3a 100%); color: #ffe0e0; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
                     </div>
                 </div>
             `).join('') : '<p class="empty-state">No tasks yet</p>'}
@@ -133,9 +137,9 @@ function displayEntityDetails(entity) {
                         ${doc.uploaded_at ? `<p><strong>Uploaded:</strong> ${new Date(doc.uploaded_at).toLocaleDateString()}</p>` : ''}
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        ${doc.file_path ? `<button onclick="viewDocument(${doc.id}, '${doc.title}')" style="padding: 8px 15px; background: linear-gradient(135deg, #5a6c8f 0%, #4a5c7f 100%); color: #e0e4e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">View</button>` : ''}
-                        ${doc.file_path ? `<button onclick="downloadDocument(${doc.id})" style="padding: 8px 15px; background: linear-gradient(135deg, #4a7c5f 0%, #3a6c4f 100%); color: #e0f9e8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Download</button>` : ''}
-                        <button onclick="deleteDocument(${doc.id})" style="padding: 8px 15px; background: linear-gradient(135deg, #8c4a4a 0%, #6c3a3a 100%); color: #fce4e4; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
+                        ${doc.file_path ? `<button onclick="viewDocument(${doc.id}, '${doc.title}')" style="padding: 8px 15px; background: linear-gradient(135deg, #2d4a7a 0%, #1d3a6a 100%); color: #e8f1ff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">View</button>` : ''}
+                        ${doc.file_path ? `<button onclick="downloadDocument(${doc.id})" style="padding: 8px 15px; background: linear-gradient(135deg, #2d7a5a 0%, #1d6a4a 100%); color: #d0ffe8; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Download</button>` : ''}
+                        <button onclick="deleteDocument(${doc.id})" style="padding: 8px 15px; background: linear-gradient(135deg, #9a4a4a 0%, #7a3a3a 100%); color: #ffe0e0; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s;">Delete</button>
                     </div>
                 </div>
             `).join('') : '<p class="empty-state">No documents yet</p>'}
@@ -145,11 +149,91 @@ function displayEntityDetails(entity) {
 }
 
 function showCreateEntityForm() {
+    currentEntityId = null;
+    document.getElementById('entity-modal-title').textContent = 'Create Entity';
+    document.getElementById('entity-submit-btn').textContent = 'Create';
     document.getElementById('create-modal').style.display = 'block';
+    // Clear form
+    document.getElementById('entity-name').value = '';
+    document.getElementById('entity-description').value = '';
+    document.getElementById('entity-ein').value = '';
+    document.getElementById('entity-state').value = '';
+    document.getElementById('entity-date').value = '';
+    document.getElementById('entity-address').value = '';
+    document.getElementById('entity-phone').value = '';
+}
+
+async function editEntity(entityId) {
+    try {
+        const response = await fetch(`${API_URL}/entities/${entityId}`);
+        const entity = await response.json();
+        currentEntityId = entityId;
+        document.getElementById('entity-modal-title').textContent = 'Edit Entity';
+        document.getElementById('entity-submit-btn').textContent = 'Save';
+        document.getElementById('create-modal').style.display = 'block';
+        document.getElementById('entity-name').value = entity.name;
+        document.getElementById('entity-description').value = entity.description || '';
+        document.getElementById('entity-ein').value = entity.ein || '';
+        document.getElementById('entity-state').value = entity.state_of_incorporation || '';
+        document.getElementById('entity-date').value = entity.date_of_incorporation || '';
+        document.getElementById('entity-address').value = entity.registered_address || '';
+        document.getElementById('entity-phone').value = entity.registered_phone || '';
+        document.getElementById('entity-status').value = entity.status || 'active';
+    } catch (error) {
+        console.error('Error loading entity:', error);
+        alert('Error loading entity details');
+    }
 }
 
 function closeModal() {
     document.getElementById('create-modal').style.display = 'none';
+    currentEntityId = null;
+}
+
+async function handleEntitySubmit(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('entity-name').value;
+    const description = document.getElementById('entity-description').value;
+    const ein = document.getElementById('entity-ein').value;
+    const state = document.getElementById('entity-state').value;
+    const date = document.getElementById('entity-date').value;
+    const address = document.getElementById('entity-address').value;
+    const phone = document.getElementById('entity-phone').value;
+    const status = document.getElementById('entity-status').value;
+    
+    try {
+        const url = currentEntityId 
+            ? `${API_URL}/entities/${currentEntityId}`
+            : `${API_URL}/entities`;
+        const method = currentEntityId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                name, description, ein, state_of_incorporation: state, 
+                date_of_incorporation: date, registered_address: address, 
+                registered_phone: phone, status 
+            })
+        });
+        
+        if (response.ok) {
+            closeModal();
+            if (currentEntityId) {
+                showSuccessMessage('Entity updated successfully!');
+                selectEntity(currentEntityId);
+            } else {
+                showSuccessMessage('Entity created successfully!');
+                loadEntities();
+            }
+        } else {
+            alert('Error saving entity');
+        }
+    } catch (error) {
+        console.error('Error saving entity:', error);
+        alert('Error saving entity');
+    }
 }
 
 async function createEntity(event) {
@@ -210,13 +294,14 @@ function showSuccessMessage(message) {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: linear-gradient(135deg, #4a7c5f 0%, #3a6c4f 100%);
-        color: #e0f9e8;
+        background: linear-gradient(135deg, #2d7a5a 0%, #1d6a4a 100%);
+        color: #d0ffe8;
         padding: 15px 25px;
         border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         z-index: 10000;
         animation: slideIn 0.3s ease-out;
+        border: 1px solid rgba(255,255,255,0.2);
     `;
     notification.textContent = message;
     

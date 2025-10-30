@@ -29,12 +29,12 @@
         </div>
     </div>
 
-    <!-- Create Entity Modal -->
+    <!-- Create/Edit Entity Modal -->
     <div id="create-modal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
-            <h2>Create Entity</h2>
-            <form onsubmit="createEntity(event)">
+            <h2 id="entity-modal-title">Create Entity</h2>
+            <form onsubmit="handleEntitySubmit(event)">
                 <input type="text" id="entity-name" placeholder="Entity Name *" required>
                 <textarea id="entity-description" placeholder="Description"></textarea>
                 <input type="text" id="entity-ein" placeholder="EIN (Employer Identification Number)">
@@ -47,7 +47,7 @@
                     <option value="inactive">Inactive</option>
                     <option value="dissolved">Dissolved</option>
                 </select>
-                <button type="submit" class="btn-primary">Create</button>
+                <button type="submit" id="entity-submit-btn" class="btn-primary">Create</button>
             </form>
         </div>
     </div>
