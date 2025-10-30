@@ -13,4 +13,9 @@ ENV/
 .DS_Store
 *.log
 .env
+uploads/
+*.pdf
+*.doc
+*.docx
+!static/
 

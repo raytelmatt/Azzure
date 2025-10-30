@@ -104,13 +104,22 @@ function displayEntityDetails(entity) {
         <div class="section">
             <h3>📄 Documents (${entity.documents.length})</h3>
             ${entity.documents.length > 0 ? entity.documents.map(doc => `
-                <div class="item-card">
-                    <h4>${escapeHtml(doc.title)}</h4>
-                    <p><strong>Type:</strong> ${escapeHtml(doc.document_type || 'N/A')}</p>
-                    <p><strong>Path:</strong> ${escapeHtml(doc.file_path || 'N/A')}</p>
+                <div class="item-card" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4>${escapeHtml(doc.title)}</h4>
+                        <p><strong>Type:</strong> ${escapeHtml(doc.document_type || 'N/A')}</p>
+                        ${doc.original_filename ? `<p><strong>File:</strong> ${escapeHtml(doc.original_filename)}</p>` : ''}
+                        ${doc.file_size ? `<p><strong>Size:</strong> ${formatFileSize(doc.file_size)}</p>` : ''}
+                        ${doc.uploaded_at ? `<p><strong>Uploaded:</strong> ${new Date(doc.uploaded_at).toLocaleDateString()}</p>` : ''}
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        ${doc.file_path ? `<button onclick="viewDocument(${doc.id}, '${doc.title}')" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">View</button>` : ''}
+                        ${doc.file_path ? `<button onclick="downloadDocument(${doc.id})" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Download</button>` : ''}
+                        <button onclick="deleteDocument(${doc.id})" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                    </div>
                 </div>
             `).join('') : '<p class="empty-state">No documents yet</p>'}
-            <button class="btn-primary" onclick="alert('Add document feature coming soon')">+ Add Document</button>
+            <button class="btn-primary" onclick="showUploadModal(${entity.id})">+ Upload Document</button>
         </div>
     `;
 }
@@ -167,18 +176,129 @@ async function createEntity(event) {
     }
 }
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('create-modal');
-    if (event.target == modal) {
-        closeModal();
-    }
-}
-
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function showUploadModal(entityId) {
+    document.getElementById('upload-modal').style.display = 'block';
+    document.getElementById('upload-modal').dataset.entityId = entityId;
+}
+
+function closeUploadModal() {
+    document.getElementById('upload-modal').style.display = 'none';
+}
+
+async function uploadDocument(event) {
+    event.preventDefault();
+    
+    const entityId = document.getElementById('upload-modal').dataset.entityId;
+    const fileInput = document.getElementById('document-file');
+    const title = document.getElementById('document-title').value || fileInput.files[0]?.name;
+    const documentType = document.getElementById('document-type').value;
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        alert('Please select a file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('title', title);
+    formData.append('document_type', documentType);
+    
+    try {
+        const response = await fetch(`${API_URL}/entities/${entityId}/documents`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            closeUploadModal();
+            document.getElementById('document-title').value = '';
+            document.getElementById('document-type').value = '';
+            document.getElementById('document-file').value = '';
+            selectEntity(entityId);
+        } else {
+            const error = await response.json();
+            alert('Error uploading document: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error uploading document:', error);
+        alert('Error uploading document');
+    }
+}
+
+async function viewDocument(documentId, title) {
+    const modal = document.getElementById('viewer-modal');
+    modal.style.display = 'block';
+    document.getElementById('viewer-title').textContent = title;
+    document.getElementById('document-viewer').src = `${API_URL}/documents/${documentId}/download`;
+}
+
+function closeViewerModal() {
+    document.getElementById('viewer-modal').style.display = 'none';
+    document.getElementById('document-viewer').src = '';
+}
+
+async function downloadDocument(documentId) {
+    const link = document.createElement('a');
+    link.href = `${API_URL}/documents/${documentId}/download`;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+async function deleteDocument(documentId) {
+    if (!confirm('Are you sure you want to delete this document?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/documents/${documentId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            if (selectedEntityId) {
+                selectEntity(selectedEntityId);
+            }
+        } else {
+            alert('Error deleting document');
+        }
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Error deleting document');
+    }
+}
+
+// Close upload modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('create-modal');
+    if (event.target == modal) {
+        closeModal();
+    }
+    
+    const uploadModal = document.getElementById('upload-modal');
+    if (event.target == uploadModal) {
+        closeUploadModal();
+    }
+    
+    const viewerModal = document.getElementById('viewer-modal');
+    if (event.target == viewerModal) {
+        closeViewerModal();
+    }
 }
 

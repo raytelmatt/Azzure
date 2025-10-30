@@ -52,6 +52,30 @@
         </div>
     </div>
 
+    <!-- Upload Document Modal -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeUploadModal()">&times;</span>
+            <h2>Upload Document</h2>
+            <form onsubmit="uploadDocument(event)">
+                <input type="text" id="document-title" placeholder="Document Title">
+                <input type="text" id="document-type" placeholder="Document Type (optional)">
+                <input type="file" id="document-file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.png,.jpg,.jpeg,.gif" required>
+                <small style="color: #666;">Allowed: PDF, DOC, DOCX, TXT, XLS, XLSX, PNG, JPG, JPEG, GIF (max 16MB)</small>
+                <button type="submit" class="btn-primary">Upload</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Document Viewer Modal -->
+    <div id="viewer-modal" class="modal">
+        <div class="modal-content" style="max-width: 90vw; height: 90vh; margin: 5vh auto;">
+            <span class="close" onclick="closeViewerModal()">&times;</span>
+            <h2 id="viewer-title">Document Viewer</h2>
+            <iframe id="document-viewer" style="width: 100%; height: calc(100% - 100px); border: none; border-radius: 8px;"></iframe>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

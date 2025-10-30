@@ -4,6 +4,8 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from datetime import datetime
 import os
+from werkzeug.utils import secure_filename
+import uuid
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
@@ -18,6 +20,18 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+# File upload configuration
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Create upload folder if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 # Models
@@ -101,7 +115,9 @@ class Document(db.Model):
     entity_id = db.Column(db.Integer, db.ForeignKey('entity.id'), nullable=False)
     title = db.Column(db.String(200), nullable=False)
     file_path = db.Column(db.String(500))
+    original_filename = db.Column(db.String(500))
     document_type = db.Column(db.String(100))
+    file_size = db.Column(db.Integer)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
@@ -110,7 +126,9 @@ class Document(db.Model):
             'entity_id': self.entity_id,
             'title': self.title,
             'file_path': self.file_path,
+            'original_filename': self.original_filename,
             'document_type': self.document_type,
+            'file_size': self.file_size,
             'uploaded_at': self.uploaded_at.isoformat() if self.uploaded_at else None
         }
 
@@ -274,18 +292,43 @@ def get_documents(entity_id):
 
 
 @app.route('/api/entities/<int:entity_id>/documents', methods=['POST'])
-def create_document(entity_id):
+def upload_document(entity_id):
     Entity.query.get_or_404(entity_id)
-    data = request.json
-    document = Document(
-        entity_id=entity_id,
-        title=data['title'],
-        file_path=data.get('file_path'),
-        document_type=data.get('document_type')
-    )
-    db.session.add(document)
-    db.session.commit()
-    return jsonify(document.to_dict()), 201
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    title = request.form.get('title', file.filename)
+    document_type = request.form.get('document_type', '')
+    
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if file and allowed_file(file.filename):
+        # Generate unique filename
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"{uuid.uuid4()}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        
+        # Get file size
+        file_size = os.path.getsize(filepath)
+        
+        # Create document record
+        document = Document(
+            entity_id=entity_id,
+            title=title,
+            file_path=filepath,
+            original_filename=file.filename,
+            document_type=document_type,
+            file_size=file_size
+        )
+        db.session.add(document)
+        db.session.commit()
+        return jsonify(document.to_dict()), 201
+    
+    return jsonify({'error': 'File type not allowed'}), 400
 
 
 @app.route('/api/documents/<int:document_id>', methods=['PUT'])
@@ -293,7 +336,6 @@ def update_document(document_id):
     document = Document.query.get_or_404(document_id)
     data = request.json
     document.title = data.get('title', document.title)
-    document.file_path = data.get('file_path', document.file_path)
     document.document_type = data.get('document_type', document.document_type)
     db.session.commit()
     return jsonify(document.to_dict())
@@ -302,9 +344,29 @@ def update_document(document_id):
 @app.route('/api/documents/<int:document_id>', methods=['DELETE'])
 def delete_document(document_id):
     document = Document.query.get_or_404(document_id)
+    
+    # Delete file from filesystem
+    if document.file_path and os.path.exists(document.file_path):
+        os.remove(document.file_path)
+    
     db.session.delete(document)
     db.session.commit()
     return '', 204
+
+
+@app.route('/api/documents/<int:document_id>/download', methods=['GET'])
+def download_document(document_id):
+    document = Document.query.get_or_404(document_id)
+    
+    if not document.file_path or not os.path.exists(document.file_path):
+        return jsonify({'error': 'File not found'}), 404
+    
+    return send_from_directory(
+        os.path.dirname(document.file_path),
+        os.path.basename(document.file_path),
+        download_name=document.original_filename or document.title,
+        as_attachment=True
+    )
 
 
 @app.route('/api/health', methods=['GET'])
@@ -316,6 +378,11 @@ def health_check():
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
+
+
+@app.route('/uploads/<filename>')
+def serve_upload(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 
 @app.route('/api/info', methods=['GET'])
