@@ -203,6 +203,61 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function showSuccessMessage(message) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #4a7c5f 0%, #3a6c4f 100%);
+        color: #e0f9e8;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+            document.head.removeChild(style);
+        }, 300);
+    }, 3000);
+}
+
 function formatFileSize(bytes) {
     if (!bytes) return '0 Bytes';
     const k = 1024;
@@ -249,6 +304,7 @@ async function uploadDocument(event) {
             document.getElementById('document-title').value = '';
             document.getElementById('document-type').value = '';
             document.getElementById('document-file').value = '';
+            showSuccessMessage('Document uploaded successfully!');
             selectEntity(entityId);
         } else {
             const error = await response.json();
