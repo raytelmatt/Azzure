@@ -434,6 +434,20 @@ def download_document(document_id):
     )
 
 
+@app.route('/api/documents/<int:document_id>/view', methods=['GET'])
+def view_document(document_id):
+    document = Document.query.get_or_404(document_id)
+    
+    if not document.file_path or not os.path.exists(document.file_path):
+        return jsonify({'error': 'File not found'}), 404
+    
+    return send_from_directory(
+        os.path.dirname(document.file_path),
+        os.path.basename(document.file_path),
+        as_attachment=False
+    )
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'})

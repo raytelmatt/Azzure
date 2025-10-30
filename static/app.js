@@ -264,7 +264,7 @@ async function viewDocument(documentId, title) {
     const modal = document.getElementById('viewer-modal');
     modal.style.display = 'block';
     document.getElementById('viewer-title').textContent = title;
-    document.getElementById('document-viewer').src = `${API_URL}/documents/${documentId}/download`;
+    document.getElementById('document-viewer').src = `${API_URL}/documents/${documentId}/view`;
 }
 
 function closeViewerModal() {
