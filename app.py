@@ -20,7 +20,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Log database configuration (for debugging - remove in production)
-print(f"Database URL: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
+print(f"=== DATABASE CONFIGURATION ===")
+print(f"Database URL: {DATABASE_URL[:50]}..." if len(DATABASE_URL) > 50 else DATABASE_URL)
+print(f"Using PostgreSQL: {'postgresql://' in DATABASE_URL.lower() or 'postgres://' in DATABASE_URL.lower()}")
+print(f"===============================")
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
