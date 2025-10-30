@@ -78,27 +78,47 @@ function displayEntityDetails(entity) {
         <div class="section">
             <h3>💳 Accounts (${entity.accounts.length})</h3>
             ${entity.accounts.length > 0 ? entity.accounts.map(acc => `
-                <div class="item-card">
-                    <h4>${escapeHtml(acc.account_name)}</h4>
-                    <p><strong>Type:</strong> ${escapeHtml(acc.account_type || 'N/A')} | 
-                       <strong>Balance:</strong> $${acc.balance.toLocaleString()}</p>
-                    <p><strong>Account #:</strong> ${escapeHtml(acc.account_number || 'N/A')}</p>
+                <div class="item-card" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <h4>${escapeHtml(acc.account_name)}</h4>
+                        <p><strong>Type:</strong> ${escapeHtml(acc.account_type || 'N/A')} | 
+                           <strong>Balance:</strong> $${(acc.balance || 0).toLocaleString()}</p>
+                        ${acc.account_number ? `<p><strong>Account #:</strong> ${escapeHtml(acc.account_number)}</p>` : ''}
+                        ${acc.username ? `<p><strong>Username:</strong> ${escapeHtml(acc.username)}</p>` : ''}
+                        ${acc.password ? `<p><strong>Password:</strong> <span id="pwd-${acc.id}" style="font-family: monospace;">********</span> <span onclick="toggleAccountPassword(${acc.id}, '${escapeHtml(acc.password)}')" style="cursor: pointer;">👁️</span></p>` : ''}
+                        ${acc.account_url ? `<p><strong>URL:</strong> <a href="${escapeHtml(acc.account_url)}" target="_blank">${escapeHtml(acc.account_url)}</a></p>` : ''}
+                        ${acc.notes ? `<p><em>${escapeHtml(acc.notes)}</em></p>` : ''}
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="editAccount(${acc.id})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Edit</button>
+                        <button onclick="deleteAccount(${acc.id})" style="padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                    </div>
                 </div>
             `).join('') : '<p class="empty-state">No accounts yet</p>'}
-            <button class="btn-primary" onclick="alert('Add account feature coming soon')">+ Add Account</button>
+            <button class="btn-primary" onclick="showAddAccountModal(${entity.id})">+ Add Account</button>
         </div>
         
         <div class="section">
             <h3>📋 Tasks (${entity.tasks.length})</h3>
             ${entity.tasks.length > 0 ? entity.tasks.map(task => `
-                <div class="item-card">
-                    <h4>${escapeHtml(task.title)}</h4>
-                    <p><strong>Status:</strong> ${escapeHtml(task.status)} | 
-                       <strong>Priority:</strong> ${escapeHtml(task.priority || 'N/A')}</p>
-                    <p>${escapeHtml(task.description || 'No description')}</p>
+                <div class="item-card" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <h4>${escapeHtml(task.title)}</h4>
+                        <p><strong>Status:</strong> <span class="status-badge status-${task.status}">${escapeHtml(task.status)}</span> | 
+                           <strong>Priority:</strong> ${escapeHtml(task.priority || 'N/A')}</p>
+                        ${task.category ? `<p><strong>Category:</strong> ${escapeHtml(task.category)}</p>` : ''}
+                        ${task.assigned_to ? `<p><strong>Assigned:</strong> ${escapeHtml(task.assigned_to)}</p>` : ''}
+                        ${task.due_date ? `<p><strong>Due:</strong> ${new Date(task.due_date).toLocaleDateString()}</p>` : ''}
+                        ${(task.estimated_hours || task.actual_hours) ? `<p><strong>Hours:</strong> Est: ${task.estimated_hours || 0}h, Act: ${task.actual_hours || 0}h</p>` : ''}
+                        <p>${escapeHtml(task.description || 'No description')}</p>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="editTask(${task.id})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Edit</button>
+                        <button onclick="deleteTask(${task.id})" style="padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                    </div>
                 </div>
             `).join('') : '<p class="empty-state">No tasks yet</p>'}
-            <button class="btn-primary" onclick="alert('Add task feature coming soon')">+ Add Task</button>
+            <button class="btn-primary" onclick="showAddTaskModal(${entity.id})">+ Add Task</button>
         </div>
         
         <div class="section">
@@ -284,7 +304,229 @@ async function deleteDocument(documentId) {
     }
 }
 
-// Close upload modal when clicking outside
+// Account management functions
+let currentAccountId = null;
+
+function showAddAccountModal(entityId) {
+    currentAccountId = null;
+    document.getElementById('account-modal-title').textContent = 'Add Account';
+    document.getElementById('account-modal').dataset.entityId = entityId;
+    document.getElementById('account-modal').style.display = 'block';
+    // Clear form
+    document.getElementById('account-name').value = '';
+    document.getElementById('account-number').value = '';
+    document.getElementById('account-balance').value = '';
+    document.getElementById('account-type').value = '';
+    document.getElementById('account-username').value = '';
+    document.getElementById('account-password').value = '';
+    document.getElementById('account-url').value = '';
+    document.getElementById('account-notes').value = '';
+}
+
+async function editAccount(accountId) {
+    try {
+        const response = await fetch(`${API_URL}/accounts/${accountId}`);
+        const account = await response.json();
+        currentAccountId = accountId;
+        document.getElementById('account-modal-title').textContent = 'Edit Account';
+        document.getElementById('account-modal').dataset.entityId = account.entity_id;
+        document.getElementById('account-modal').style.display = 'block';
+        document.getElementById('account-name').value = account.account_name;
+        document.getElementById('account-number').value = account.account_number || '';
+        document.getElementById('account-balance').value = account.balance || 0;
+        document.getElementById('account-type').value = account.account_type || '';
+        document.getElementById('account-username').value = account.username || '';
+        document.getElementById('account-password').value = '';
+        document.getElementById('account-url').value = account.account_url || '';
+        document.getElementById('account-notes').value = account.notes || '';
+    } catch (error) {
+        console.error('Error loading account:', error);
+        alert('Error loading account details');
+    }
+}
+
+function closeAccountModal() {
+    document.getElementById('account-modal').style.display = 'none';
+}
+
+async function handleAccountSubmit(event) {
+    event.preventDefault();
+    const entityId = document.getElementById('account-modal').dataset.entityId;
+    const data = {
+        account_name: document.getElementById('account-name').value,
+        account_number: document.getElementById('account-number').value,
+        balance: parseFloat(document.getElementById('account-balance').value) || 0,
+        account_type: document.getElementById('account-type').value,
+        username: document.getElementById('account-username').value,
+        password: document.getElementById('account-password').value,
+        account_url: document.getElementById('account-url').value,
+        notes: document.getElementById('account-notes').value
+    };
+    
+    try {
+        const url = currentAccountId 
+            ? `${API_URL}/accounts/${currentAccountId}`
+            : `${API_URL}/entities/${entityId}/accounts`;
+        const method = currentAccountId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            closeAccountModal();
+            selectEntity(entityId);
+        } else {
+            alert('Error saving account');
+        }
+    } catch (error) {
+        console.error('Error saving account:', error);
+        alert('Error saving account');
+    }
+}
+
+async function deleteAccount(accountId) {
+    if (!confirm('Are you sure you want to delete this account?')) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/accounts/${accountId}`, { method: 'DELETE' });
+        if (response.ok && selectedEntityId) {
+            selectEntity(selectedEntityId);
+        } else {
+            alert('Error deleting account');
+        }
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        alert('Error deleting account');
+    }
+}
+
+function toggleAccountPassword(accountId, decryptedPassword) {
+    const pwdSpan = document.getElementById(`pwd-${accountId}`);
+    if (pwdSpan.textContent === '********') {
+        pwdSpan.textContent = decryptedPassword;
+    } else {
+        pwdSpan.textContent = '********';
+    }
+}
+
+// Task management functions
+let currentTaskId = null;
+
+function showAddTaskModal(entityId) {
+    currentTaskId = null;
+    document.getElementById('task-modal-title').textContent = 'Add Task';
+    document.getElementById('task-modal').dataset.entityId = entityId;
+    document.getElementById('task-modal').style.display = 'block';
+    // Clear form
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-description').value = '';
+    document.getElementById('task-status').value = 'pending';
+    document.getElementById('task-priority').value = '';
+    document.getElementById('task-category').value = '';
+    document.getElementById('task-assigned').value = '';
+    document.getElementById('task-start-date').value = '';
+    document.getElementById('task-due-date').value = '';
+    document.getElementById('task-estimated-hours').value = '';
+    document.getElementById('task-actual-hours').value = '';
+    document.getElementById('task-completion-date').value = '';
+    document.getElementById('task-dependencies').value = '';
+}
+
+async function editTask(taskId) {
+    try {
+        const response = await fetch(`${API_URL}/tasks/${taskId}`);
+        const task = await response.json();
+        currentTaskId = taskId;
+        document.getElementById('task-modal-title').textContent = 'Edit Task';
+        document.getElementById('task-modal').dataset.entityId = task.entity_id;
+        document.getElementById('task-modal').style.display = 'block';
+        document.getElementById('task-title').value = task.title;
+        document.getElementById('task-description').value = task.description || '';
+        document.getElementById('task-status').value = task.status;
+        document.getElementById('task-priority').value = task.priority || '';
+        document.getElementById('task-category').value = task.category || '';
+        document.getElementById('task-assigned').value = task.assigned_to || '';
+        document.getElementById('task-start-date').value = task.start_date || '';
+        document.getElementById('task-due-date').value = task.due_date || '';
+        document.getElementById('task-estimated-hours').value = task.estimated_hours || '';
+        document.getElementById('task-actual-hours').value = task.actual_hours || '';
+        document.getElementById('task-completion-date').value = task.completion_date || '';
+        document.getElementById('task-dependencies').value = task.dependencies ? task.dependencies.join(', ') : '';
+    } catch (error) {
+        console.error('Error loading task:', error);
+        alert('Error loading task details');
+    }
+}
+
+function closeTaskModal() {
+    document.getElementById('task-modal').style.display = 'none';
+}
+
+async function handleTaskSubmit(event) {
+    event.preventDefault();
+    const entityId = document.getElementById('task-modal').dataset.entityId;
+    const dependenciesInput = document.getElementById('task-dependencies').value;
+    const dependencies = dependenciesInput ? dependenciesInput.split(',').map(d => d.trim()).filter(d => d) : [];
+    
+    const data = {
+        title: document.getElementById('task-title').value,
+        description: document.getElementById('task-description').value,
+        status: document.getElementById('task-status').value,
+        priority: document.getElementById('task-priority').value,
+        category: document.getElementById('task-category').value,
+        assigned_to: document.getElementById('task-assigned').value,
+        start_date: document.getElementById('task-start-date').value,
+        due_date: document.getElementById('task-due-date').value,
+        estimated_hours: parseFloat(document.getElementById('task-estimated-hours').value) || null,
+        actual_hours: parseFloat(document.getElementById('task-actual-hours').value) || null,
+        completion_date: document.getElementById('task-completion-date').value,
+        dependencies: dependencies
+    };
+    
+    try {
+        const url = currentTaskId 
+            ? `${API_URL}/tasks/${currentTaskId}`
+            : `${API_URL}/entities/${entityId}/tasks`;
+        const method = currentTaskId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            closeTaskModal();
+            selectEntity(entityId);
+        } else {
+            alert('Error saving task');
+        }
+    } catch (error) {
+        console.error('Error saving task:', error);
+        alert('Error saving task');
+    }
+}
+
+async function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/tasks/${taskId}`, { method: 'DELETE' });
+        if (response.ok && selectedEntityId) {
+            selectEntity(selectedEntityId);
+        } else {
+            alert('Error deleting task');
+        }
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        alert('Error deleting task');
+    }
+}
+
+// Close all modals when clicking outside
 window.onclick = function(event) {
     const modal = document.getElementById('create-modal');
     if (event.target == modal) {
@@ -299,6 +541,16 @@ window.onclick = function(event) {
     const viewerModal = document.getElementById('viewer-modal');
     if (event.target == viewerModal) {
         closeViewerModal();
+    }
+    
+    const accountModal = document.getElementById('account-modal');
+    if (event.target == accountModal) {
+        closeAccountModal();
+    }
+    
+    const taskModal = document.getElementById('task-modal');
+    if (event.target == taskModal) {
+        closeTaskModal();
     }
 }
 

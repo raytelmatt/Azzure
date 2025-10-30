@@ -76,6 +76,68 @@
         </div>
     </div>
 
+    <!-- Add Account Modal -->
+    <div id="account-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeAccountModal()">&times;</span>
+            <h2 id="account-modal-title">Add Account</h2>
+            <form onsubmit="handleAccountSubmit(event)">
+                <input type="text" id="account-name" placeholder="Account Name *" required>
+                <input type="text" id="account-number" placeholder="Account Number">
+                <input type="number" id="account-balance" placeholder="Balance" step="0.01">
+                <input type="text" id="account-type" placeholder="Account Type">
+                <input type="text" id="account-username" placeholder="Username/Login">
+                <div style="position: relative;">
+                    <input type="password" id="account-password" placeholder="Password">
+                    <span onclick="toggleAccountPassword()" style="position: absolute; right: 10px; top: 12px; cursor: pointer; user-select: none;">👁️</span>
+                </div>
+                <input type="url" id="account-url" placeholder="Account URL">
+                <textarea id="account-notes" placeholder="Notes"></textarea>
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="closeTaskModal()">&times;</span>
+            <h2 id="task-modal-title">Add Task</h2>
+            <form onsubmit="handleTaskSubmit(event)">
+                <input type="text" id="task-title" placeholder="Title *" required>
+                <textarea id="task-description" placeholder="Description"></textarea>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <select id="task-status">
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                    <select id="task-priority">
+                        <option value="">Priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <input type="text" id="task-category" placeholder="Category">
+                <input type="text" id="task-assigned" placeholder="Assigned To">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="task-start-date" placeholder="Start Date">
+                    <input type="date" id="task-due-date" placeholder="Due Date">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="number" id="task-estimated-hours" placeholder="Estimated Hours" step="0.1">
+                    <input type="number" id="task-actual-hours" placeholder="Actual Hours" step="0.1">
+                </div>
+                <input type="date" id="task-completion-date" placeholder="Completion Date">
+                <input type="text" id="task-dependencies" placeholder="Dependencies (comma separated)">
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

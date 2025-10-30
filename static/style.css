@@ -196,6 +196,34 @@ header p {
     color: #999;
 }
 
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-in-progress {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-blocked {
+    background: #f8d7da;
+    color: #842029;
+}
+
 @media (max-width: 768px) {
     .main-content {
         grid-template-columns: 1fr;

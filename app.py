@@ -6,6 +6,9 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 import uuid
+from cryptography.fernet import Fernet
+import base64
+import json
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
@@ -32,6 +35,30 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Password encryption setup
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+if not ENCRYPTION_KEY:
+    # Generate and print key if not set (for local dev)
+    ENCRYPTION_KEY = Fernet.generate_key()
+    print(f'WARNING: Using generated encryption key. Set ENCRYPTION_KEY environment variable in production: {ENCRYPTION_KEY.decode()}')
+else:
+    if isinstance(ENCRYPTION_KEY, str):
+        ENCRYPTION_KEY = ENCRYPTION_KEY.encode()
+cipher = Fernet(ENCRYPTION_KEY)
+
+def encrypt_password(password):
+    if not password:
+        return None
+    return cipher.encrypt(password.encode()).decode()
+
+def decrypt_password(encrypted):
+    if not encrypted:
+        return None
+    try:
+        return cipher.decrypt(encrypted.encode()).decode()
+    except Exception:
+        return None
 
 
 # Models
@@ -73,6 +100,10 @@ class Account(db.Model):
     account_number = db.Column(db.String(50))
     balance = db.Column(db.Float, default=0.0)
     account_type = db.Column(db.String(50))
+    username = db.Column(db.String(100))
+    password = db.Column(db.Text)
+    account_url = db.Column(db.String(500))
+    notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
@@ -83,6 +114,10 @@ class Account(db.Model):
             'account_number': self.account_number,
             'balance': self.balance,
             'account_type': self.account_type,
+            'username': self.username,
+            'password': decrypt_password(self.password) if self.password else None,
+            'account_url': self.account_url,
+            'notes': self.notes,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -95,6 +130,13 @@ class Task(db.Model):
     status = db.Column(db.String(50), default='pending')
     priority = db.Column(db.String(50))
     due_date = db.Column(db.Date)
+    category = db.Column(db.String(100))
+    assigned_to = db.Column(db.String(100))
+    estimated_hours = db.Column(db.Float)
+    actual_hours = db.Column(db.Float)
+    start_date = db.Column(db.Date)
+    completion_date = db.Column(db.Date)
+    dependencies = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
@@ -106,6 +148,13 @@ class Task(db.Model):
             'status': self.status,
             'priority': self.priority,
             'due_date': self.due_date.isoformat() if self.due_date else None,
+            'category': self.category,
+            'assigned_to': self.assigned_to,
+            'estimated_hours': self.estimated_hours,
+            'actual_hours': self.actual_hours,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'completion_date': self.completion_date.isoformat() if self.completion_date else None,
+            'dependencies': json.loads(self.dependencies) if self.dependencies else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -205,16 +254,27 @@ def get_accounts(entity_id):
 def create_account(entity_id):
     Entity.query.get_or_404(entity_id)
     data = request.json
+    encrypted_password = encrypt_password(data.get('password')) if data.get('password') else None
     account = Account(
         entity_id=entity_id,
         account_name=data['account_name'],
         account_number=data.get('account_number'),
         balance=data.get('balance', 0.0),
-        account_type=data.get('account_type')
+        account_type=data.get('account_type'),
+        username=data.get('username'),
+        password=encrypted_password,
+        account_url=data.get('account_url'),
+        notes=data.get('notes')
     )
     db.session.add(account)
     db.session.commit()
     return jsonify(account.to_dict()), 201
+
+
+@app.route('/api/accounts/<int:account_id>', methods=['GET'])
+def get_account(account_id):
+    account = Account.query.get_or_404(account_id)
+    return jsonify(account.to_dict())
 
 
 @app.route('/api/accounts/<int:account_id>', methods=['PUT'])
@@ -225,6 +285,11 @@ def update_account(account_id):
     account.account_number = data.get('account_number', account.account_number)
     account.balance = data.get('balance', account.balance)
     account.account_type = data.get('account_type', account.account_type)
+    account.username = data.get('username', account.username)
+    if data.get('password'):
+        account.password = encrypt_password(data['password'])
+    account.account_url = data.get('account_url', account.account_url)
+    account.notes = data.get('notes', account.notes)
     db.session.commit()
     return jsonify(account.to_dict())
 
@@ -249,17 +314,33 @@ def create_task(entity_id):
     Entity.query.get_or_404(entity_id)
     data = request.json
     due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None
+    start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date() if data.get('start_date') else None
+    completion_date = datetime.strptime(data['completion_date'], '%Y-%m-%d').date() if data.get('completion_date') else None
+    dependencies_json = json.dumps(data.get('dependencies')) if data.get('dependencies') else None
     task = Task(
         entity_id=entity_id,
         title=data['title'],
         description=data.get('description'),
         status=data.get('status', 'pending'),
         priority=data.get('priority'),
-        due_date=due_date
+        due_date=due_date,
+        category=data.get('category'),
+        assigned_to=data.get('assigned_to'),
+        estimated_hours=data.get('estimated_hours'),
+        actual_hours=data.get('actual_hours'),
+        start_date=start_date,
+        completion_date=completion_date,
+        dependencies=dependencies_json
     )
     db.session.add(task)
     db.session.commit()
     return jsonify(task.to_dict()), 201
+
+
+@app.route('/api/tasks/<int:task_id>', methods=['GET'])
+def get_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    return jsonify(task.to_dict())
 
 
 @app.route('/api/tasks/<int:task_id>', methods=['PUT'])
@@ -270,8 +351,18 @@ def update_task(task_id):
     task.description = data.get('description', task.description)
     task.status = data.get('status', task.status)
     task.priority = data.get('priority', task.priority)
+    task.category = data.get('category', task.category)
+    task.assigned_to = data.get('assigned_to', task.assigned_to)
+    task.estimated_hours = data.get('estimated_hours', task.estimated_hours)
+    task.actual_hours = data.get('actual_hours', task.actual_hours)
     if data.get('due_date'):
         task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
+    if data.get('start_date'):
+        task.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+    if data.get('completion_date'):
+        task.completion_date = datetime.strptime(data['completion_date'], '%Y-%m-%d').date()
+    if data.get('dependencies'):
+        task.dependencies = json.dumps(data['dependencies'])
     db.session.commit()
     return jsonify(task.to_dict())
 
