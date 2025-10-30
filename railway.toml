@@ -7,5 +7,5 @@ healthcheckPath = "/api/health"
 healthcheckTimeout = 100
 
 [[services]]
-mounts = ["data"]
+mounts = ["uploads"]
 
