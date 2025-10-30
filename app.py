@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 # Database configuration
@@ -284,9 +284,14 @@ def health_check():
     return jsonify({'status': 'healthy'})
 
 
-# Root endpoint
+# Serve static files
 @app.route('/')
 def index():
+    return send_from_directory('static', 'index.html')
+
+
+@app.route('/api/info', methods=['GET'])
+def api_info():
     return jsonify({
         'message': 'Entity Tracking API',
         'version': '1.0.0',

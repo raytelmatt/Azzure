@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entity Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 Entity Tracker</h1>
+            <p>Manage entities, accounts, tasks, and documents</p>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <button class="btn-primary" onclick="showCreateEntityForm()">+ New Entity</button>
+                <div id="entities-list"></div>
+            </aside>
+
+            <main class="details-view">
+                <div id="welcome">
+                    <h2>Welcome</h2>
+                    <p>Select an entity from the left to view details, or create a new one.</p>
+                </div>
+                <div id="entity-details" style="display: none;"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Create Entity Modal -->
+    <div id="create-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Create Entity</h2>
+            <form onsubmit="createEntity(event)">
+                <input type="text" id="entity-name" placeholder="Entity Name" required>
+                <textarea id="entity-description" placeholder="Description"></textarea>
+                <button type="submit" class="btn-primary">Create</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
