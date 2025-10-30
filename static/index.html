@@ -35,8 +35,18 @@
             <span class="close" onclick="closeModal()">&times;</span>
             <h2>Create Entity</h2>
             <form onsubmit="createEntity(event)">
-                <input type="text" id="entity-name" placeholder="Entity Name" required>
+                <input type="text" id="entity-name" placeholder="Entity Name *" required>
                 <textarea id="entity-description" placeholder="Description"></textarea>
+                <input type="text" id="entity-ein" placeholder="EIN (Employer Identification Number)">
+                <input type="text" id="entity-state" placeholder="State of Incorporation">
+                <input type="date" id="entity-date" placeholder="Date of Incorporation">
+                <input type="text" id="entity-address" placeholder="Registered Address">
+                <input type="tel" id="entity-phone" placeholder="Registered Phone Number">
+                <select id="entity-status">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="dissolved">Dissolved</option>
+                </select>
                 <button type="submit" class="btn-primary">Create</button>
             </form>
         </div>

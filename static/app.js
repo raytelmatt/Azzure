@@ -65,6 +65,14 @@ function displayEntityDetails(entity) {
         <div class="entity-header">
             <h2>${escapeHtml(entity.name)}</h2>
             <p>${escapeHtml(entity.description || 'No description')}</p>
+            <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                ${entity.ein ? `<p><strong>EIN:</strong> ${escapeHtml(entity.ein)}</p>` : ''}
+                ${entity.state_of_incorporation ? `<p><strong>State:</strong> ${escapeHtml(entity.state_of_incorporation)}</p>` : ''}
+                ${entity.date_of_incorporation ? `<p><strong>Incorporated:</strong> ${escapeHtml(entity.date_of_incorporation)}</p>` : ''}
+                ${entity.status ? `<p><strong>Status:</strong> <span style="padding: 4px 12px; border-radius: 4px; background: ${entity.status === 'active' ? '#d4edda' : entity.status === 'inactive' ? '#fff3cd' : '#f8d7da'}; color: ${entity.status === 'active' ? '#155724' : entity.status === 'inactive' ? '#856404' : '#721c24'};">${escapeHtml(entity.status).toUpperCase()}</span></p>` : ''}
+            </div>
+            ${entity.registered_address ? `<p style="margin-top: 5px;"><strong>Address:</strong> ${escapeHtml(entity.registered_address)}</p>` : ''}
+            ${entity.registered_phone ? `<p style="margin-top: 5px;"><strong>Phone:</strong> ${escapeHtml(entity.registered_phone)}</p>` : ''}
         </div>
         
         <div class="section">
@@ -120,6 +128,12 @@ async function createEntity(event) {
     
     const name = document.getElementById('entity-name').value;
     const description = document.getElementById('entity-description').value;
+    const ein = document.getElementById('entity-ein').value;
+    const state = document.getElementById('entity-state').value;
+    const date = document.getElementById('entity-date').value;
+    const address = document.getElementById('entity-address').value;
+    const phone = document.getElementById('entity-phone').value;
+    const status = document.getElementById('entity-status').value;
     
     try {
         const response = await fetch(`${API_URL}/entities`, {
@@ -127,13 +141,22 @@ async function createEntity(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ name, description })
+            body: JSON.stringify({ 
+                name, description, ein, state_of_incorporation: state, 
+                date_of_incorporation: date, registered_address: address, 
+                registered_phone: phone, status 
+            })
         });
         
         if (response.ok) {
             closeModal();
             document.getElementById('entity-name').value = '';
             document.getElementById('entity-description').value = '';
+            document.getElementById('entity-ein').value = '';
+            document.getElementById('entity-state').value = '';
+            document.getElementById('entity-date').value = '';
+            document.getElementById('entity-address').value = '';
+            document.getElementById('entity-phone').value = '';
             loadEntities();
         } else {
             alert('Error creating entity');

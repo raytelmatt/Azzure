@@ -23,6 +23,12 @@ class Entity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
+    ein = db.Column(db.String(50))
+    registered_address = db.Column(db.String(500))
+    registered_phone = db.Column(db.String(50))
+    state_of_incorporation = db.Column(db.String(100))
+    status = db.Column(db.String(50), default='active')
+    date_of_incorporation = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     accounts = db.relationship('Account', backref='entity', lazy=True, cascade='all, delete-orphan')
@@ -34,6 +40,12 @@ class Entity(db.Model):
             'id': self.id,
             'name': self.name,
             'description': self.description,
+            'ein': self.ein,
+            'registered_address': self.registered_address,
+            'registered_phone': self.registered_phone,
+            'state_of_incorporation': self.state_of_incorporation,
+            'status': self.status,
+            'date_of_incorporation': self.date_of_incorporation.isoformat() if self.date_of_incorporation else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -121,9 +133,16 @@ def get_entity(entity_id):
 @app.route('/api/entities', methods=['POST'])
 def create_entity():
     data = request.json
+    incorporation_date = datetime.strptime(data['date_of_incorporation'], '%Y-%m-%d').date() if data.get('date_of_incorporation') else None
     entity = Entity(
         name=data['name'],
-        description=data.get('description')
+        description=data.get('description'),
+        ein=data.get('ein'),
+        registered_address=data.get('registered_address'),
+        registered_phone=data.get('registered_phone'),
+        state_of_incorporation=data.get('state_of_incorporation'),
+        status=data.get('status', 'active'),
+        date_of_incorporation=incorporation_date
     )
     db.session.add(entity)
     db.session.commit()
@@ -136,6 +155,13 @@ def update_entity(entity_id):
     data = request.json
     entity.name = data.get('name', entity.name)
     entity.description = data.get('description', entity.description)
+    entity.ein = data.get('ein', entity.ein)
+    entity.registered_address = data.get('registered_address', entity.registered_address)
+    entity.registered_phone = data.get('registered_phone', entity.registered_phone)
+    entity.state_of_incorporation = data.get('state_of_incorporation', entity.state_of_incorporation)
+    entity.status = data.get('status', entity.status)
+    if data.get('date_of_incorporation'):
+        entity.date_of_incorporation = datetime.strptime(data['date_of_incorporation'], '%Y-%m-%d').date()
     db.session.commit()
     return jsonify(entity.to_dict())
 

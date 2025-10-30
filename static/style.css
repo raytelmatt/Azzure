@@ -168,7 +168,8 @@ header p {
 }
 
 .modal-content form input,
-.modal-content form textarea {
+.modal-content form textarea,
+.modal-content form select {
     width: 100%;
     padding: 12px;
     margin-bottom: 15px;
@@ -183,7 +184,8 @@ header p {
 }
 
 .modal-content form input:focus,
-.modal-content form textarea:focus {
+.modal-content form textarea:focus,
+.modal-content form select:focus {
     outline: none;
     border-color: #667eea;
 }
