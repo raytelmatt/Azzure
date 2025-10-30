@@ -9,3 +9,6 @@ healthcheckTimeout = 100
 [[services]]
 mounts = ["uploads"]
 
+[environment]
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
+
