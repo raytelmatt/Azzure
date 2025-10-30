@@ -19,6 +19,9 @@ if DATABASE_URL.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Log database configuration (for debugging - remove in production)
+print(f"Database URL: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -479,6 +482,7 @@ def api_info():
 # Initialize database
 with app.app_context():
     db.create_all()
+    print("Database tables initialized")
 
 
 if __name__ == '__main__':
