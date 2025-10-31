@@ -477,8 +477,9 @@ def serve_upload(filename):
 @app.route('/api/info', methods=['GET'])
 def api_info():
     return jsonify({
-        'message': 'Entity Tracking API',
-        'version': '1.0.0',
+        'message': 'Entuq - Entity Tracking API',
+        'version': '3.0',
+        'author': 'Matthew R. Ray',
         'endpoints': {
             'entities': '/api/entities',
             'health': '/api/health'
