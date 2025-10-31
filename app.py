@@ -25,6 +25,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 print(f"=== DATABASE CONFIGURATION ===")
 print(f"Database URL: {DATABASE_URL[:50]}..." if len(DATABASE_URL) > 50 else DATABASE_URL)
 print(f"Using PostgreSQL: {'postgresql://' in DATABASE_URL.lower() or 'postgres://' in DATABASE_URL.lower()}")
+print(f"Full URL: {DATABASE_URL}")
 print(f"===============================")
 
 db = SQLAlchemy(app)
