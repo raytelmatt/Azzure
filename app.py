@@ -12,9 +12,10 @@ app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 # Database configuration
-# Use the Railway PostgreSQL database URL
+# Default to Railway PostgreSQL database URL if env var not set
 RAILWAY_POSTGRES_URL = 'postgresql://postgres:gxbCgcwLxaZRIrdiXnmZomSVimsdYdSj@mainline.proxy.rlwy.net:44233/railway'
 DATABASE_URL = os.getenv('DATABASE_URL', RAILWAY_POSTGRES_URL)
+
 # Handle PostgreSQL URL format for older drivers
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
