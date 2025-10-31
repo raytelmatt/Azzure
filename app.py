@@ -2,14 +2,21 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
-from datetime import datetime
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from datetime import datetime, timedelta
 import os
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import json
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
+
+# JWT Configuration
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+jwt = JWTManager(app)
 
 # Database configuration
 # Default to Railway PostgreSQL database URL if env var not set
@@ -167,14 +174,71 @@ class Document(db.Model):
         }
 
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
+# Authentication endpoints
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    if not data.get('username') or not data.get('password') or not data.get('email'):
+        return jsonify({'error': 'Username, email, and password are required'}), 400
+    
+    # Check if user already exists
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'error': 'Username already exists'}), 400
+    
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({'error': 'Email already exists'}), 400
+    
+    # Create new user
+    user = User(username=data['username'], email=data['email'])
+    user.set_password(data['password'])
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User created successfully'}), 201
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+    
+    user = User.query.filter_by(username=username).first()
+    
+    if not user or not user.check_password(password):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+    access_token = create_access_token(identity=username)
+    return jsonify({'access_token': access_token, 'username': username}), 200
+
+
 # Entity endpoints
 @app.route('/api/entities', methods=['GET'])
+@jwt_required()
 def get_entities():
     entities = Entity.query.all()
     return jsonify([e.to_dict() for e in entities])
 
 
 @app.route('/api/entities/<int:entity_id>', methods=['GET'])
+@jwt_required()
 def get_entity(entity_id):
     entity = Entity.query.get_or_404(entity_id)
     result = entity.to_dict()
@@ -185,6 +249,7 @@ def get_entity(entity_id):
 
 
 @app.route('/api/entities', methods=['POST'])
+@jwt_required()
 def create_entity():
     data = request.json
     incorporation_date = datetime.strptime(data['date_of_incorporation'], '%Y-%m-%d').date() if data.get('date_of_incorporation') else None
@@ -204,6 +269,7 @@ def create_entity():
 
 
 @app.route('/api/entities/<int:entity_id>', methods=['PUT'])
+@jwt_required()
 def update_entity(entity_id):
     entity = Entity.query.get_or_404(entity_id)
     data = request.json
@@ -221,6 +287,7 @@ def update_entity(entity_id):
 
 
 @app.route('/api/entities/<int:entity_id>', methods=['DELETE'])
+@jwt_required()
 def delete_entity(entity_id):
     entity = Entity.query.get_or_404(entity_id)
     db.session.delete(entity)
@@ -230,12 +297,14 @@ def delete_entity(entity_id):
 
 # Account endpoints
 @app.route('/api/entities/<int:entity_id>/accounts', methods=['GET'])
+@jwt_required()
 def get_accounts(entity_id):
     entity = Entity.query.get_or_404(entity_id)
     return jsonify([a.to_dict() for a in entity.accounts])
 
 
 @app.route('/api/entities/<int:entity_id>/accounts', methods=['POST'])
+@jwt_required()
 def create_account(entity_id):
     Entity.query.get_or_404(entity_id)
     data = request.json
@@ -256,12 +325,14 @@ def create_account(entity_id):
 
 
 @app.route('/api/accounts/<int:account_id>', methods=['GET'])
+@jwt_required()
 def get_account(account_id):
     account = Account.query.get_or_404(account_id)
     return jsonify(account.to_dict())
 
 
 @app.route('/api/accounts/<int:account_id>', methods=['PUT'])
+@jwt_required()
 def update_account(account_id):
     account = Account.query.get_or_404(account_id)
     data = request.json
@@ -279,6 +350,7 @@ def update_account(account_id):
 
 
 @app.route('/api/accounts/<int:account_id>', methods=['DELETE'])
+@jwt_required()
 def delete_account(account_id):
     account = Account.query.get_or_404(account_id)
     db.session.delete(account)
@@ -288,12 +360,14 @@ def delete_account(account_id):
 
 # Task endpoints
 @app.route('/api/entities/<int:entity_id>/tasks', methods=['GET'])
+@jwt_required()
 def get_tasks(entity_id):
     entity = Entity.query.get_or_404(entity_id)
     return jsonify([t.to_dict() for t in entity.tasks])
 
 
 @app.route('/api/entities/<int:entity_id>/tasks', methods=['POST'])
+@jwt_required()
 def create_task(entity_id):
     Entity.query.get_or_404(entity_id)
     data = request.json
@@ -322,12 +396,14 @@ def create_task(entity_id):
 
 
 @app.route('/api/tasks/<int:task_id>', methods=['GET'])
+@jwt_required()
 def get_task(task_id):
     task = Task.query.get_or_404(task_id)
     return jsonify(task.to_dict())
 
 
 @app.route('/api/tasks/<int:task_id>', methods=['PUT'])
+@jwt_required()
 def update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.json
@@ -352,6 +428,7 @@ def update_task(task_id):
 
 
 @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+@jwt_required()
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
     db.session.delete(task)
@@ -361,12 +438,14 @@ def delete_task(task_id):
 
 # Document endpoints
 @app.route('/api/entities/<int:entity_id>/documents', methods=['GET'])
+@jwt_required()
 def get_documents(entity_id):
     entity = Entity.query.get_or_404(entity_id)
     return jsonify([d.to_dict() for d in entity.documents])
 
 
 @app.route('/api/entities/<int:entity_id>/documents', methods=['POST'])
+@jwt_required()
 def upload_document(entity_id):
     Entity.query.get_or_404(entity_id)
     
@@ -407,6 +486,7 @@ def upload_document(entity_id):
 
 
 @app.route('/api/documents/<int:document_id>', methods=['PUT'])
+@jwt_required()
 def update_document(document_id):
     document = Document.query.get_or_404(document_id)
     data = request.json
@@ -417,6 +497,7 @@ def update_document(document_id):
 
 
 @app.route('/api/documents/<int:document_id>', methods=['DELETE'])
+@jwt_required()
 def delete_document(document_id):
     document = Document.query.get_or_404(document_id)
     
@@ -430,6 +511,7 @@ def delete_document(document_id):
 
 
 @app.route('/api/documents/<int:document_id>/download', methods=['GET'])
+@jwt_required()
 def download_document(document_id):
     document = Document.query.get_or_404(document_id)
     
@@ -445,6 +527,7 @@ def download_document(document_id):
 
 
 @app.route('/api/documents/<int:document_id>/view', methods=['GET'])
+@jwt_required()
 def view_document(document_id):
     document = Document.query.get_or_404(document_id)
     

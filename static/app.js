@@ -2,15 +2,133 @@ const API_URL = 'https://web-production-f68b3.up.railway.app/api';
 
 let selectedEntityId = null;
 let currentEntityId = null;
+let authToken = localStorage.getItem('authToken');
+let currentUsername = localStorage.getItem('username');
 
-// Load entities on page load
+// Check if user is logged in on page load
 document.addEventListener('DOMContentLoaded', () => {
-    loadEntities();
+    if (authToken && currentUsername) {
+        showMainApp();
+    } else {
+        document.getElementById('login-modal').style.display = 'block';
+    }
 });
+
+async function handleLogin(event) {
+    event.preventDefault();
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+    const errorDiv = document.getElementById('login-error');
+    
+    try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            authToken = data.access_token;
+            currentUsername = data.username;
+            localStorage.setItem('authToken', authToken);
+            localStorage.setItem('username', currentUsername);
+            showMainApp();
+        } else {
+            errorDiv.textContent = data.error || 'Login failed';
+            errorDiv.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        errorDiv.textContent = 'Error connecting to server';
+        errorDiv.style.display = 'block';
+    }
+}
+
+async function handleRegister(event) {
+    event.preventDefault();
+    const username = document.getElementById('register-username').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const errorDiv = document.getElementById('register-error');
+    
+    try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Account created successfully! Please login.');
+            closeRegisterModal();
+        } else {
+            errorDiv.textContent = data.error || 'Registration failed';
+            errorDiv.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        errorDiv.textContent = 'Error connecting to server';
+        errorDiv.style.display = 'block';
+    }
+}
+
+function showRegisterModal() {
+    document.getElementById('login-modal').style.display = 'none';
+    document.getElementById('register-modal').style.display = 'block';
+}
+
+function closeRegisterModal() {
+    document.getElementById('register-modal').style.display = 'none';
+    document.getElementById('login-modal').style.display = 'block';
+}
+
+function showMainApp() {
+    document.getElementById('login-modal').style.display = 'none';
+    document.getElementById('register-modal').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    document.getElementById('user-greeting').textContent = `Welcome, ${currentUsername}!`;
+    loadEntities();
+}
+
+function logout() {
+    authToken = null;
+    currentUsername = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('login-modal').style.display = 'block';
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+}
+
+// Helper function for authenticated fetch requests
+async function authFetch(url, options = {}) {
+    const headers = {
+        ...options.headers
+    };
+    
+    // Don't set Content-Type if FormData (browser will set it with boundary)
+    if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
+    
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    return fetch(url, {
+        ...options,
+        headers
+    });
+}
 
 async function loadEntities() {
     try {
-        const response = await fetch(`${API_URL}/entities`);
+        const response = await authFetch(`${API_URL}/entities`);
         const entities = await response.json();
         displayEntities(entities);
     } catch (error) {
@@ -46,7 +164,7 @@ async function selectEntity(id) {
     
     // Load entity details
     try {
-        const response = await fetch(`${API_URL}/entities/${id}`);
+        const response = await authFetch(`${API_URL}/entities/${id}`);
         const entity = await response.json();
         displayEntityDetails(entity);
     } catch (error) {
@@ -165,7 +283,7 @@ function showCreateEntityForm() {
 
 async function editEntity(entityId) {
     try {
-        const response = await fetch(`${API_URL}/entities/${entityId}`);
+        const response = await authFetch(`${API_URL}/entities/${entityId}`);
         const entity = await response.json();
         currentEntityId = entityId;
         document.getElementById('entity-modal-title').textContent = 'Edit Entity';
@@ -208,9 +326,8 @@ async function handleEntitySubmit(event) {
             : `${API_URL}/entities`;
         const method = currentEntityId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 name, description, ein, state_of_incorporation: state, 
                 date_of_incorporation: date, registered_address: address, 
@@ -335,7 +452,7 @@ async function uploadDocument(event) {
     formData.append('document_type', documentType);
     
     try {
-        const response = await fetch(`${API_URL}/entities/${entityId}/documents`, {
+        const response = await authFetch(`${API_URL}/entities/${entityId}/documents`, {
             method: 'POST',
             body: formData
         });
@@ -384,7 +501,7 @@ async function deleteDocument(documentId) {
     }
     
     try {
-        const response = await fetch(`${API_URL}/documents/${documentId}`, {
+        const response = await authFetch(`${API_URL}/documents/${documentId}`, {
             method: 'DELETE'
         });
         
@@ -422,7 +539,7 @@ function showAddAccountModal(entityId) {
 
 async function editAccount(accountId) {
     try {
-        const response = await fetch(`${API_URL}/accounts/${accountId}`);
+        const response = await authFetch(`${API_URL}/accounts/${accountId}`);
         const account = await response.json();
         currentAccountId = accountId;
         document.getElementById('account-modal-title').textContent = 'Edit Account';
@@ -466,9 +583,8 @@ async function handleAccountSubmit(event) {
             : `${API_URL}/entities/${entityId}/accounts`;
         const method = currentAccountId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         
@@ -488,7 +604,7 @@ async function deleteAccount(accountId) {
     if (!confirm('Are you sure you want to delete this account?')) return;
     
     try {
-        const response = await fetch(`${API_URL}/accounts/${accountId}`, { method: 'DELETE' });
+        const response = await authFetch(`${API_URL}/accounts/${accountId}`, { method: 'DELETE' });
         if (response.ok && selectedEntityId) {
             selectEntity(selectedEntityId);
         } else {
@@ -534,7 +650,7 @@ function showAddTaskModal(entityId) {
 
 async function editTask(taskId) {
     try {
-        const response = await fetch(`${API_URL}/tasks/${taskId}`);
+        const response = await authFetch(`${API_URL}/tasks/${taskId}`);
         const task = await response.json();
         currentTaskId = taskId;
         document.getElementById('task-modal-title').textContent = 'Edit Task';
@@ -589,9 +705,8 @@ async function handleTaskSubmit(event) {
             : `${API_URL}/entities/${entityId}/tasks`;
         const method = currentTaskId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         
@@ -611,7 +726,7 @@ async function deleteTask(taskId) {
     if (!confirm('Are you sure you want to delete this task?')) return;
     
     try {
-        const response = await fetch(`${API_URL}/tasks/${taskId}`, { method: 'DELETE' });
+        const response = await authFetch(`${API_URL}/tasks/${taskId}`, { method: 'DELETE' });
         if (response.ok && selectedEntityId) {
             selectEntity(selectedEntityId);
         } else {
