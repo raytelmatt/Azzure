@@ -1,4 +1,4 @@
-from app import app, db
+from app import app, db, User
 import sys
 import os
 
@@ -20,6 +20,18 @@ def run_migrations():
             inspector = inspect(db.engine)
             tables = inspector.get_table_names()
             print(f"MIGRATION: Created tables: {tables}")
+            
+            # Create initial admin user if it doesn't exist
+            admin_user = User.query.filter_by(username='iahmatt').first()
+            if not admin_user:
+                print("MIGRATION: Creating initial admin user 'iahmatt'...")
+                admin_user = User(username='iahmatt', email='iahmatt@entuq.com')
+                admin_user.set_password('raffle')
+                db.session.add(admin_user)
+                db.session.commit()
+                print("MIGRATION: Admin user created successfully!")
+            else:
+                print("MIGRATION: Admin user 'iahmatt' already exists")
             
             return True
     except Exception as e:
